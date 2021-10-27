@@ -1,12 +1,13 @@
 import numpy as np
 
 
+# despues con kuargs o args ver el tipo de coordenadas q se entrega dependiendo del tipo
 class Punto():
-    def __init__(self, x, y, z):
-        self.r = np.array([x, y, z])
+    def __init__(self, coordenadas, sistema='cartecianas'):
+        self.sistema = sistema
+        self.r = np.array([coordenadas[0], coordenadas[1], coordenadas[2]])
 
 
- 
 class Cuerpos_Rigidos():
     inercia = None
     orientacion = [0,0,0]
@@ -15,13 +16,3 @@ class Cuerpos_Rigidos():
         self.m = masa
         self.o = orientacion
         self.I = inercia
-
-
-
-
-
-
-
-
-
-
