@@ -1,101 +1,115 @@
 from cuerpos import Punto
 import numpy as np 
 from abc import ABC, abstractmethod
+from funciones import transformar_coordenadas, derivar, plot
+from tiempo import tiempo, dt
+from matrices_rotacion import R_x, R_y, R_z
 
 
-class SR:
-    def __init__(self, centro):
-        self.objetos = list()
-        self.p_cartesianas = list()
-        self.p_cilindricas = list()
-        self.O = np.array(centro)
+class SRG():
+    def __init__(self, sistema = 'cartecianas'):
+        self.nombre = 'O'
+        self.centro = Punto()
+        map(self.centro.movimiento(np.array([0,0,0])), tiempo)
+        self.objetos = {'centro': self.centro}
+        self.sistema = sistema
+        self.orientacion = [np.array([[1,0,0],[0,1,0],[0,0,1]]) for i in range(len(tiempo))]
+                            
+        
+# si no especifico este punto va a estar quieto siempre
+    def crear(self, nombre): 
+        objeto = Punto()
+        self.objetos[nombre] = objeto
 
-    @abstractmethod
-    def crear_punto(self, coordenadas, sistema='cartecianas'): 
-        if sistema in ['cartecianas', 'cilindricas', 'esfericas']:
-            p = Punto(coordenadas, sistema)
-            self.objetos.append(p)
-            
-    @abstractmethod
-    def puntos(self, sistema='cartecianas'):
+    def agregar(self, nombre, objeto):
+        self.objetos[nombre] = objeto
+
+#podria hacer que solito busque como llegar hasta el sr0. o q sea otro metodo llamado ver global q busque la recursivamente los centros hasta q encuentre el sr0.
+#especificar en el metodo que punto es el que quiero ver.    
+#creo q esta funcion esta de mas por q podria solo ver el punto y chao
+    def ver(self, nombre):
+        objeto = self.objetos[nombre]
         coordenadas = list()
-        for p in self.objetos:
-            if sistema==p.sistema:
-                coordenadas.append(p.r)
-            else:
-                r = self.transfomar_coordenadas(p.r, p.sistema, sistema)
-                coordenadas.append(list(r))
+        for r in objeto.trayectoria:
+            r = transformar_coordenadas(r, self.sistema)
+            coordenadas.append(r)
         return coordenadas
-                
-    @abstractmethod
-    def distancia(self,p1,p2):
-        return np.linalg.norm(p1.r-p2.r)
+
+#trabaja con objetos punto y no redefine su atributo trayectoria sino que retorna su trayectoria cambiada 
+    def cambiar_sistema(self, p, transformar_a='cartecianas'): #si viene de cartecianas solo la transforma pero si viene de otra la pasa a cartecianas y de forma recursiva vuelve a llamar a la funcion    
+        tra = list()    
+        for i in p.trayectoria:
+            tra.append(transformar_coordenadas(i, de=self.sistema, a=transformar_a))
+        return tra
     
 
-#falta esfericas
-#recive coordenadas y entrega coordenadas. trabaja con arrays###
-    @abstractmethod
-    def transfomar_coordenadas(self, r, de, a='cartecianas'): #si viene de cartecianas solo la transforma pero si viene de otra la pasa a cartecianas y de forma recursiva vuelve a llamar a la funcion    
-        if de == a:  
-            return r
+    def velocidad(self, nombre):
+        trayec = self.cambiar_sistema(self.objetos[nombre])
+        return derivar(trayec)
         
-        elif de =='cartecianas' and a == 'cilindricas':
-
-            z = r[2]
-            ra = np.linalg.norm(r - self.O)
-            teta = np.arctan(r[1]/r[0]) 
-            r = np.array([ra,teta,z])
-            return r 
-
-        elif de =='cartecianas' and a == 'esfericas':
-            ra = np.linalg.norm(r - self.O)
-            teta = np.arctan(r[1]/r[0]) 
-            r_xy = np.linalg.norm([r[0],r[1]])
-            phi = np.arcsin(r_xy/ra)
-            r = np.array([ra,teta,phi])
-            return r
+    def aceleracion(self, nombre):
+        return derivar(self.velocidad(nombre))
+    
+    
+    
+    
+# el centro es un SR Punto que hay que entregar le al SRL
+# los puntos definidos en un sistema de referencia 'estan fijos a el' se mueven junto con el y rotan respecto a el si el rota 
+class SRL(SRG):
+    def __init__(self, SR_relativo, nombre_centro, sistema = 'cartecianas'):
+        self.nombre = SR_relativo.nombre + nombre_centro
+        self.sr_relativo = SR_relativo
+        self.centro = self.sr_relativo.objetos[nombre_centro]
+        self.sistema = sistema
+        self.objetos = {'centro': self.centro}  
+        self.orientacion = self.sr_relativo.orientacion
         
-        elif de == 'cilindricas':
-            x = np.cos(r[1])*r[0]
-            y = np.sin(r[1])*r[0]
-            z = r[2]
-            r = np.array([x,y,z])
-            return self.transfomar_coordenadas(r, 'cartecianas', a)
-        
-        elif de =='esfericas':
-            z = np.cos(r[2])*r[0]
-            r_xy = (r[0]**2-z**2)**(1/2)
-            x = np.cos(r[1])*r_xy
-            y = np.sin(r[1])*r_xy
-            r = np.array([x,y,z])
-            return self.transfomar_coordenadas(r, 'cartecianas', a)
-
-        else:
-            print('pifiaste')
 
 
-class SRG(SR):
-    def __init__(self):
-        self.centro = Punto([0,0,0])
-        super().__init__(self.centro)
 
-# el centro es un objeto Punto
-class SRL(SR):
-    def __init__(self, centro):
-        self.centro = centro
-        super().__init__(self.centro.r)
+# si no llamo esta funcion mi SR va a tener la misma orientacion que tiene el SR con el cual fue definido
+# si llamo esta funcion la orientacion del SR va a ser; la orientacion del SR antiguo punto M de orientacion del objeto centro
+    def orientar(self):
+        for i in range(len(tiempo)):    
+            self.orientacion[i] = np.dot(self.orientacion[i], self.centro.orientacion[i])
+
+# hacer que se defina en el sistema Sr_relativo
+    def fu(self, nombre):
+        R = list()
+        B = self.cambiar_sistema(self.objetos[nombre])
+        M = self.orientacion
+        A = self.sr_relativo.cambiar_sistema(self.centro)
+        for t in range(len(tiempo)):
+            Mt = np.transpose(M[t])
+            b = B[t]
+            a = A[t]
+            r = a + Mt.dot(b)
+            R.append(r)
+        R = [transformar_coordenadas(r, 'cartecianas', self.sr_relativo.sistema) for r in R]
+        return R
 
 
 
 
 
-"""
-            if r[0] < 0 and r[1] > 0: #cuadrante 2
-                teta = teta + np.pi
-            elif r[0] < 0 and r[1] == 0:
-                teta = np.pi
-            elif r[0] > 0 and r[1] < 0: #cuadrante 4
-                teta = 2*np.pi + teta
-            elif r[0] < 0 and r[1] < 0: #cuadrante 3
-                teta = np.pi + teta
-            """
+#puntos_globales = list(map(lambda a, b: a+b, srb.ver('A'), srb.ver('centro') ))
+
+'''
+#ahora es solo una coordendada despues implementar para trayectoria
+# tampoco utliza la orientacion asume que estan todos derechos
+
+    def ver_origen(self, nombre):
+        objeto = self.objetos[nombre]
+        vector = [np.array([0,0,0]) for i in range(len(tiempo))]
+        sr = self
+        while sr.nombre != 'O':
+            vector = list(map(lambda a,b: a+b, sr.cambiar_sistema(sr.centro), vector))
+            sr = sr.sr_relativo
+        tr = self.cambiar_sistema(objeto)
+        tr = list(map(lambda a,b: a+b, tr, vector))     
+        return tr
+
+
+'''
+
+

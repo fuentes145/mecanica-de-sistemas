@@ -1,11 +1,20 @@
 import numpy as np
-
+from tiempo import tiempo, dt
 
 # despues con kuargs o args ver el tipo de coordenadas q se entrega dependiendo del tipo
+#no se como armar el contador de puntos... c para los id
 class Punto():
-    def __init__(self, coordenadas, sistema='cartecianas'):
-        self.sistema = sistema
-        self.r = np.array([coordenadas[0], coordenadas[1], coordenadas[2]])
+    def __init__(self):
+        self.orientacion = list()
+        self.trayectoria = list()
+        
+    def movimiento(self, r):
+        self.trayectoria.append(r)
+
+# el punto solo tiene la orientacion relativa... es mas natural a como se resolveran problemas
+    def rotacion(self, M):
+        self.orientacion.append(M)
+
 
 
 class Cuerpos_Rigidos():
@@ -14,5 +23,9 @@ class Cuerpos_Rigidos():
     def __init__(self, centro_gravedad , masa):
         self.cg = np.array(centro_gravedad)
         self.m = masa
-        self.o = orientacion
+        self.o = orientacion # angulos de euler
         self.I = inercia
+        
+    def aplicar_fuerza(self, F):
+        pass
+        
