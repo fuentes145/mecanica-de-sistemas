@@ -22,3 +22,8 @@ def R_y(o):
 def R_z(o):
     return np.array([[np.cos(o), -np.sin(o), 0], [np.sin(o), np.cos(o), 0], [0, 0, 1]])
 
+# cilindricas a cartecianas
+
+
+def Mcilindricas(o):
+    return np.array([[np.cos(o), -np.sin(o), 0],[np.sin(o), np.cos(o), 0],[0, 0, 1]])

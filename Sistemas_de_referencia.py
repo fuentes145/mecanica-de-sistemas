@@ -1,13 +1,13 @@
-from cuerpos import Punto
+from cuerpos import Punto, Cuerpo_Rigido
 import numpy as np 
 from abc import ABC, abstractmethod
-from funciones import transformar_coordenadas, derivar, plot
+from funciones import transformar_coordenadas, derivar, plot, integrar
 from tiempo import tiempo, dt
 from matrices_rotacion import R_x, R_y, R_z
 
 
 class SRG():
-    def __init__(self, sistema = 'cartecianas'):
+    def __init__(self, sistema = 'cartesianas'):
         self.nombre = 'O'
         self.centro = Punto()
         map(self.centro.movimiento(np.array([0,0,0])), tiempo)
@@ -17,12 +17,17 @@ class SRG():
                             
         
 # si no especifico este punto va a estar quieto siempre
-    def crear(self, nombre): 
-        objeto = Punto()
+    def crearc(self, nombre, m): 
+        objeto = Cuerpo_Rigido(self, m) 
+        self.objetos[nombre] = objeto
+        
+    def crearp(self, nombre): 
+        objeto = Punto() 
         self.objetos[nombre] = objeto
 
     def agregar(self, nombre, objeto):
         self.objetos[nombre] = objeto
+    
 
 #podria hacer que solito busque como llegar hasta el sr0. o q sea otro metodo llamado ver global q busque la recursivamente los centros hasta q encuentre el sr0.
 #especificar en el metodo que punto es el que quiero ver.    
@@ -36,7 +41,7 @@ class SRG():
         return coordenadas
 
 #trabaja con objetos punto y no redefine su atributo trayectoria sino que retorna su trayectoria cambiada 
-    def cambiar_sistema(self, p, transformar_a='cartecianas'): #si viene de cartecianas solo la transforma pero si viene de otra la pasa a cartecianas y de forma recursiva vuelve a llamar a la funcion    
+    def cambiar_sistema(self, p, transformar_a='cartesianas'): #si viene de cartesianas solo la transforma pero si viene de otra la pasa a cartesianas y de forma recursiva vuelve a llamar a la funcion    
         tra = list()    
         for i in p.trayectoria:
             tra.append(transformar_coordenadas(i, de=self.sistema, a=transformar_a))
@@ -50,13 +55,16 @@ class SRG():
     def aceleracion(self, nombre):
         return derivar(self.velocidad(nombre))
     
+    def integ(self, nombre):
+        trayec = self.cambiar_sistema(self.objetos[nombre])
+        return integrar(trayec)   
     
     
     
-# el centro es un SR Punto que hay que entregar le al SRL
+# el centro es un SR Punto que hay que entregarle al SRL
 # los puntos definidos en un sistema de referencia 'estan fijos a el' se mueven junto con el y rotan respecto a el si el rota 
 class SRL(SRG):
-    def __init__(self, SR_relativo, nombre_centro, sistema = 'cartecianas'):
+    def __init__(self, SR_relativo, nombre_centro, sistema = 'cartesianas'):
         self.nombre = SR_relativo.nombre + nombre_centro
         self.sr_relativo = SR_relativo
         self.centro = self.sr_relativo.objetos[nombre_centro]
@@ -85,7 +93,7 @@ class SRL(SRG):
             a = A[t]
             r = a + Mt.dot(b)
             R.append(r)
-        R = [transformar_coordenadas(r, 'cartecianas', self.sr_relativo.sistema) for r in R]
+        R = [transformar_coordenadas(r, 'cartesianas', self.sr_relativo.sistema) for r in R]
         return R
 
 

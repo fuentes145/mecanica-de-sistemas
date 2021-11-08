@@ -1,7 +1,7 @@
 from Sistemas_de_referencia import SRG, SRL
 from cuerpos import Punto
 import numpy as np
-from funciones import plot, transformar_coordenadas, derivar
+from funciones import plot, transformar_coordenadas, derivar, integrar
 from matrices_rotacion import *
 from tiempo import tiempo, dt
 
@@ -19,11 +19,11 @@ srb.crear('A')
 
 #defino trayectorias y orientaciones
 for t in tiempo:
-    srb.objetos['A'].movimiento(np.array([1, t*np.pi, s(t)]))
+    srb.objetos['A'].movimiento(np.array([1, t*np.pi, 2]))
     sr0.objetos['B'].movimiento(np.array([2, np.pi, np.pi/2-t*np.pi/8]))
     sr0.objetos['B'].rotacion(R_y(-np.pi*t/8))
     
-srb.orientar() # aca hago q srb valla cambiando su orientacion con el punto B
+srb.orientar() # aca hago q srb vaya cambiando su orientacion con el punto B
 
 #ocupo el codigo para resolver el problema...
 sr0.crear('A')
@@ -33,12 +33,18 @@ sr0.objetos['A'].trayectoria = srb.fu('A')
 
 #respuestas 
 plot(sr0.ver('A'))
+vel = sr0.velocidad('A')
+#plot(vel)
+pos = integrar(vel, np.array([-1,0,2]))
+plot(pos)
+#plot(sr0.aceleracion('A'))
+
 '''
 plot(srb.velocidad('A'))
 plot(srb.aceleracion('A'))
-
-plot(sr0.velocidad('A'))
-plot(sr0.aceleracion('A'))
 '''
+
+
+
 
 

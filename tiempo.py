@@ -6,7 +6,7 @@ Created on Tue Nov  2 01:22:46 2021
 
 """
 
-segundo_final = 10
+segundo_final = 2
 frames = 1000
 
 import numpy as np
@@ -20,6 +20,3 @@ instacia_tiempo = Tiempo(segundo_final, frames)
 
 tiempo = instacia_tiempo.t
 dt = instacia_tiempo.dt
-
-
-
